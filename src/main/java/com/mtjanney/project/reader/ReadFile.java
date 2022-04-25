@@ -28,12 +28,12 @@ public class ReadFile {
     /**
      * This is the main program which executes the loop to read and display the appropriate tokens from the given
      * input text files located in Project.java.
-     *
+     * <p>
      * Todo: Each element is labeled for its functionality, and refactoring to simplify can be done in the future.
      * The reading of the text files and the output of their corresponding tokens is done concurrently without storage
      * of any tokens in a data structure. Easy implementation for future compiler elements such as syntax checking or
      * execution of the compiled language can be added inside check cases for specific terminals.
-     *
+     * <p>
      * Each loop of a "line" of text is read concurrently character by character and once a new "word" is located, a
      * new "terminal" is reached, and checked for specific cases, or the end-of-text symbol is located, the loop will
      * define the current "lexeme" and execute the next(), kind(), value(), and print() functions to correctly display
@@ -46,7 +46,9 @@ public class ReadFile {
         String line;
         boolean skipClause = false;
         boolean skipLine = false;
-        int internalLine = 1; int internalPosition = 1;
+        int internalLine = 1;
+        int internalPosition = 1;
+        int skipAmount = 1;
         StringBuilder word = new StringBuilder(); // This holds the last read characters until lexeme is defined.
 
         // This is the next() function, which reads the next lexeme concurrently from the input file.
@@ -97,6 +99,8 @@ public class ReadFile {
                                         CURRENT_POS = internalPosition;
                                         CURRENT_LINE = internalLine;
 
+                                        //System.out.println("Actual position is " + CURRENT_POS + " for word : " + word);
+
                                         if (CURRENT_POS > line.length()) {
                                             increment = true;
                                         }
@@ -106,23 +110,23 @@ public class ReadFile {
 
                                     // Checks for a special terminal case where a followup symbol may exist.
                                     if (c == '=' || c == ':' || c == '!' || c == '>' || c == '/') {
-                                        if (i+1 < line.length()) { // Verifies that there is indeed a next symbol in the line.
+                                        if (i + 1 < line.length()) { // Verifies that there is indeed a next symbol in the line.
                                             if (c == '=') {
-                                                if (line.charAt(i+1) == '<') { // Checks special case.
+                                                if (line.charAt(i + 1) == '<') { // Checks special case.
                                                     NEXT_TOKEN = "=<";
                                                     skipClause = true;
                                                 } else { // Not special case.
                                                     NEXT_TOKEN = String.valueOf(c);
                                                 }
                                             } else if (c == ':') {
-                                                if (line.charAt(i+1) == '=') {
+                                                if (line.charAt(i + 1) == '=') {
                                                     NEXT_TOKEN = ":=";
                                                     skipClause = true;
                                                 } else {
                                                     NEXT_TOKEN = String.valueOf(c);
                                                 }
                                             } else if (c == '!') {
-                                                if (line.charAt(i+1) == '=') {
+                                                if (line.charAt(i + 1) == '=') {
                                                     NEXT_TOKEN = "!=";
                                                     skipClause = true;
                                                 } else { // Verifying that the next symbol is not a single '!'
@@ -131,13 +135,13 @@ public class ReadFile {
                                                             + ", Char " + CURRENT_POS + ")");
                                                 }
                                             } else if (c == '/') {
-                                                if (line.charAt(i+1) == '/') { // Comment case
+                                                if (line.charAt(i + 1) == '/') { // Comment case
                                                     skipLine = true;
                                                 } else { // Division case
                                                     NEXT_TOKEN = String.valueOf(c);
                                                 }
                                             } else {
-                                                if (line.charAt(i+1) == '=') {
+                                                if (line.charAt(i + 1) == '=') {
                                                     NEXT_TOKEN = ">=";
                                                     skipClause = true;
                                                 } else {
@@ -176,15 +180,18 @@ public class ReadFile {
                                 } else if (checkTerminalNumber(c)) { // Will "read" a character given a terminal symbol number.
                                     word.append(c);
 
-                                    if (i+1 < line.length()) { // Verifying next char is something.
-                                        if (!checkTerminalNumber(line.charAt(i+1))) { // If the next read char is a number.
+                                    if (i + 1 < line.length()) { // Verifying next char is something.
+                                        if (!checkTerminalNumber(line.charAt(i + 1))) { // If the next read char is a number.
                                             NEXT_TOKEN = word.toString();
                                             CURRENT_POS = internalPosition + 1;
                                             CURRENT_LINE = internalLine;
 
-                                            if (CURRENT_POS >= line.length()) {
-                                                increment = true;
-                                            }
+                                            // TODO: See if this also conflicts with other elements when removed!
+                                            //if (CURRENT_POS >= line.length()) {
+                                            //    increment = true;
+
+                                            //    System.out.println("TRUE!!!");
+                                            //}
 
                                             formatPosition = true;
 
@@ -214,7 +221,6 @@ public class ReadFile {
 
                 if (word.length() != 0) { // Last lexeme in line was forming, so must be completed.
                     NEXT_TOKEN = word.toString();
-                    word.setLength(0);
                     CURRENT_POS = internalPosition;
                     CURRENT_LINE = internalLine;
 
@@ -226,8 +232,13 @@ public class ReadFile {
                 }
             }
 
+            if (skipLine) {
+                internalPosition = 1;
+                CURRENT_POS = 1;
+                skipLine = false; // Resets a skip line case with "//" symbols.
+            }
+
             internalLine++;
-            skipLine = false; // Resets a skip line case with "//" symbols.
         }
 
         // end-of-text output in the case that it was reached.
@@ -241,6 +252,7 @@ public class ReadFile {
 
     /**
      * Checks whether there is a single terminal instance for the concurrent character.
+     *
      * @param ch = current character.
      * @return = whether ch is terminal.
      */
@@ -252,15 +264,16 @@ public class ReadFile {
 
     /**
      * Checks whether the read character is inside the language.
+     *
      * @param ch = current character.
      * @return = whether ch is inside language.
      */
     private static boolean checkLanguage(char ch) {
         List<Character> language = List.of('0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
-        , 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'
-        , 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
-        , 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
-        , '<', '>', '=', ':', ';', '-', '*', '/', '+', '_', '(', ')', '!');
+                , 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q'
+                , 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'
+                , 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+                , '<', '>', '=', ':', ';', '-', '*', '/', '+', '_', '(', ')', '!');
 
         return language.contains(ch);
     }
@@ -268,6 +281,7 @@ public class ReadFile {
     /**
      * Checks whether the read character is a terminal number.
      * Used to verify if an identifier needs to be separated given the next character in the line.
+     *
      * @param ch = current character
      * @return = whether ch is a number
      */
@@ -280,9 +294,10 @@ public class ReadFile {
     /**
      * Prints out the current lexeme as a token definition.
      * Todo: For future, checking syntax and execution of text files will have logic here.
+     *
      * @param position = current position in text file.
-     * @param kind = kind of read lexeme.
-     * @param value = value of read lexeme (if applicable).
+     * @param kind     = kind of read lexeme.
+     * @param value    = value of read lexeme (if applicable).
      */
     public static void print(String position, String kind, String value) {
         String column1Format = "%-30.30s";
@@ -298,20 +313,22 @@ public class ReadFile {
 
     /**
      * Obtains current position as a String.
+     *
      * @return = string of current position for display.
      */
     public static String position() {
         if (formatPosition) {
             formatPosition = false;
-            return "Line " + CURRENT_LINE + ", Char " + (NEXT_TOKEN.length() > 1 ? (CURRENT_POS - NEXT_TOKEN.length()): CURRENT_POS - 1);
+            return "Line " + CURRENT_LINE + ", Char " + (NEXT_TOKEN.length() > 1 ? (CURRENT_POS - NEXT_TOKEN.length()) : CURRENT_POS - 1);
         } else {
-            return "Line " + CURRENT_LINE + ", Char " + (NEXT_TOKEN.length() > 1 ? (CURRENT_POS - NEXT_TOKEN.length()): CURRENT_POS);
+            return "Line " + CURRENT_LINE + ", Char " + (NEXT_TOKEN.length() > 1 ? (CURRENT_POS - NEXT_TOKEN.length()) : CURRENT_POS);
         }
     }
 
     /**
      * Returns a string of the current "kind" of lexeme read.
      * If the "kind" has a valid value, then it will be displayed as either "ID" or "NUM".
+     *
      * @return = string value of kind of lexeme.
      */
     public static String kind() {
@@ -367,6 +384,7 @@ public class ReadFile {
     /**
      * Returns string value of read "kind" of lexeme.
      * Only applicable for NUM and ID, otherwise it will be " ".
+     *
      * @return = string "value" of read lexeme.
      */
     public static String value() {
